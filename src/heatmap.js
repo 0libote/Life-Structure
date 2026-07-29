@@ -27,19 +27,45 @@ function stats(levels, today = new Date()) {
   return { active, points, streak };
 }
 
-function activityLevel(count) {
-  if (count >= 10) return 4;
-  if (count >= 5) return 3;
-  if (count >= 2) return 2;
+const THRESHOLDS = {
+  notes: [1, 2, 5, 10],
+  words: [1, 100, 500, 1000],
+  characters: [1, 500, 2500, 5000],
+};
+
+function activityLevel(count, metric = "notes") {
+  const [, some, good, great] = THRESHOLDS[metric] || THRESHOLDS.notes;
+  if (count >= great) return 4;
+  if (count >= good) return 3;
+  if (count >= some) return 2;
   return count ? 1 : 0;
 }
 
-function combinedLevels(manual, edits) {
+function activityTotal(files = {}, metric = "notes") {
+  if (metric === "notes") return Object.keys(files).length;
+  return Object.values(files).reduce((total, counts) => total + (counts[metric] || 0), 0);
+}
+
+function combinedLevels(manual, activity, metric = "notes") {
   const levels = { ...manual };
-  for (const [key, paths] of Object.entries(edits)) {
-    levels[key] = Math.max(levels[key] || 0, activityLevel(paths.length));
+  for (const [key, files] of Object.entries(activity)) {
+    levels[key] = Math.max(levels[key] || 0, activityLevel(activityTotal(files, metric), metric));
   }
   return levels;
+}
+
+function textCounts(text) {
+  return {
+    words: text.trim() ? text.trim().split(/\s+/u).length : 0,
+    characters: [...text].length,
+  };
+}
+
+function addedCounts(current, previous = { words: 0, characters: 0 }) {
+  return {
+    words: Math.max(0, current.words - previous.words),
+    characters: Math.max(0, current.characters - previous.characters),
+  };
 }
 
 function periodData(levels, start, end, cutoff) {
@@ -70,4 +96,14 @@ function gridColumns(count, width, height, itemWidth, itemHeight, gap = 12) {
   return bestColumns;
 }
 
-module.exports = { activityLevel, combinedLevels, dateKey, gridColumns, periodData, stats };
+module.exports = {
+  activityLevel,
+  activityTotal,
+  addedCounts,
+  combinedLevels,
+  dateKey,
+  gridColumns,
+  periodData,
+  stats,
+  textCounts,
+};
