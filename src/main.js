@@ -6,16 +6,23 @@ import Tooltip from "cal-heatmap/plugins/Tooltip";
 
 const { ItemView, Plugin, setIcon, TFile } = require("obsidian");
 const {
-  activityLevel,
+  addedCounts,
+  activityTotal,
   combinedLevels,
   dateKey,
   gridColumns,
   periodData,
   stats,
+  textCounts,
 } = require("./heatmap");
 
 const VIEW_TYPE = "life-structure";
 const LEVEL_LABELS = ["No activity", "A little", "Some", "Good", "Great"];
+const METRICS = {
+  notes: ["Notes", "notes touched", "note touched"],
+  words: ["Words", "words written", "word written"],
+  characters: ["Characters", "characters written", "character written"],
+};
 
 class LifeStructureView extends ItemView {
   constructor(leaf, plugin) {
@@ -66,8 +73,9 @@ class LifeStructureView extends ItemView {
     const isCurrent =
       year === currentYear && (this.mode === "year" || month === currentMonth);
     const manual = this.plugin.data.levels;
-    const edits = this.plugin.data.edits;
-    const levels = combinedLevels(manual, edits);
+    const activity = this.plugin.data.activity;
+    const metric = this.plugin.data.metric;
+    const levels = combinedLevels(manual, activity, metric);
     const start = new Date(year, this.mode === "year" ? 0 : month, 1, 12);
     const end = new Date(year, this.mode === "year" ? 11 : month + 1, this.mode === "year" ? 31 : 0, 12);
     const cutoff = isCurrent
@@ -81,8 +89,8 @@ class LifeStructureView extends ItemView {
     const periodLevels = Object.fromEntries(Object.entries(levels).filter(([key]) => inPeriod(key)));
     const { streak } = stats(levels, today);
     const active = Object.values(periodLevels).filter((level) => level > 0).length;
-    const touched = Object.entries(edits).reduce(
-      (total, [key, paths]) => total + (inPeriod(key) ? paths.length : 0),
+    const total = Object.entries(activity).reduce(
+      (sum, [key, files]) => sum + (inPeriod(key) ? activityTotal(files, metric) : 0),
       0,
     );
     const root = this.contentEl;
@@ -98,12 +106,24 @@ class LifeStructureView extends ItemView {
     const metrics = header.createDiv({ cls: "life-structure__metrics" });
     this.metric(metrics, streak, "day streak");
     this.metric(metrics, active, "active days");
-    this.metric(metrics, touched, "notes touched");
+    this.metric(metrics, total.toLocaleString(), METRICS[metric][1]);
 
     const panel = root.createEl("section", { cls: "life-structure__panel" });
     const toolbar = panel.createDiv({ cls: "life-structure__toolbar" });
     toolbar.createEl("h3", { text: this.periodLabel() });
     const controls = toolbar.createDiv({ cls: "life-structure__controls" });
+    const metricSelect = controls.createEl("select", {
+      attr: { "aria-label": "Heatmap metric", title: "Heatmap metric" },
+    });
+    for (const [value, [label]] of Object.entries(METRICS)) {
+      metricSelect.createEl("option", { text: label, value });
+    }
+    metricSelect.value = metric;
+    metricSelect.addEventListener("change", async () => {
+      this.plugin.data.metric = metricSelect.value;
+      await this.plugin.saveData(this.plugin.data);
+      await this.render();
+    });
     const range = controls.createDiv({
       cls: "life-structure__range",
       attr: { role: "group" },
@@ -231,9 +251,10 @@ class LifeStructureView extends ItemView {
             text: (timestamp, value) => {
               if (timestamp > +cutoff) return "";
               const key = dateKey(new Date(timestamp));
-              const count = edits[key]?.length || 0;
+              const count = activityTotal(activity[key], metric);
               const level = typeof value === "number" ? value : 0;
-              return `<strong>${dateFormatter.format(new Date(timestamp))}</strong><span>${count} note${count === 1 ? "" : "s"} touched · ${LEVEL_LABELS[level]}</span>`;
+              const label = METRICS[metric][count === 1 ? 2 : 1];
+              return `<strong>${dateFormatter.format(new Date(timestamp))}</strong><span>${count.toLocaleString()} ${label} · ${LEVEL_LABELS[level]}</span>`;
             },
           },
         ],
@@ -331,19 +352,35 @@ class LifeStructureView extends ItemView {
 module.exports = class LifeStructurePlugin extends Plugin {
   async onload() {
     const stored = await this.loadData();
+    const edits =
+      stored?.edits && typeof stored.edits === "object" && !Array.isArray(stored.edits)
+        ? stored.edits
+        : {};
     this.data = {
       levels:
         stored?.levels && typeof stored.levels === "object" && !Array.isArray(stored.levels)
           ? stored.levels
           : {},
-      edits:
-        stored?.edits && typeof stored.edits === "object" && !Array.isArray(stored.edits)
-          ? Object.fromEntries(
-              Object.entries(stored.edits)
+      activity:
+        stored?.activity && typeof stored.activity === "object" && !Array.isArray(stored.activity)
+          ? stored.activity
+          : Object.fromEntries(
+              Object.entries(edits)
                 .filter(([, paths]) => Array.isArray(paths))
-                .map(([key, paths]) => [key, paths.filter((path) => typeof path === "string")]),
-            )
+                .map(([key, paths]) => [
+                  key,
+                  Object.fromEntries(
+                    paths
+                      .filter((path) => typeof path === "string")
+                      .map((path) => [path, { words: 0, characters: 0 }]),
+                  ),
+                ]),
+            ),
+      files:
+        stored?.files && typeof stored.files === "object" && !Array.isArray(stored.files)
+          ? stored.files
           : {},
+      metric: Object.hasOwn(METRICS, stored?.metric) ? stored.metric : "notes",
     };
     await this.backfill();
     this.registerView(VIEW_TYPE, (leaf) => new LifeStructureView(leaf, this));
@@ -360,6 +397,7 @@ module.exports = class LifeStructurePlugin extends Plugin {
     this.registerEvent(this.app.vault.on("create", (file) => void this.recordEdit(file)));
     this.registerEvent(this.app.vault.on("modify", (file) => void this.recordEdit(file)));
     this.registerEvent(this.app.vault.on("rename", (file, oldPath) => void this.renameEdit(file, oldPath)));
+    this.registerEvent(this.app.vault.on("delete", (file) => void this.deleteFile(file)));
     this.registerEvent(this.app.workspace.on("css-change", () => this.refreshViews()));
   }
 
@@ -367,25 +405,42 @@ module.exports = class LifeStructurePlugin extends Plugin {
     let changed = false;
     for (const file of this.app.vault.getMarkdownFiles()) {
       for (const timestamp of new Set([file.stat.ctime, file.stat.mtime])) {
-        changed = this.addEdit(file.path, new Date(timestamp)) || changed;
+        changed =
+          this.addActivity(file.path, { words: 0, characters: 0 }, new Date(timestamp)) ||
+          changed;
+      }
+      if (!this.data.files[file.path]) {
+        this.data.files[file.path] = textCounts(await this.app.vault.cachedRead(file));
+        changed = true;
       }
     }
     if (changed) await this.saveData(this.data);
   }
 
-  addEdit(path, date = new Date()) {
+  addActivity(path, counts, date = new Date()) {
     const key = dateKey(date);
-    const paths = (this.data.edits[key] ??= []);
-    if (paths.includes(path)) return false;
-    paths.push(path);
-    return true;
+    const files = (this.data.activity[key] ??= {});
+    const previous = files[path];
+    files[path] = {
+      words: (previous?.words || 0) + counts.words,
+      characters: (previous?.characters || 0) + counts.characters,
+    };
+    return !previous || counts.words > 0 || counts.characters > 0;
   }
 
   async recordEdit(file) {
+    if (!(file instanceof TFile) || file.extension !== "md") return;
+    const counts = textCounts(await this.app.vault.cachedRead(file));
+    const previous = this.data.files[file.path] || { words: 0, characters: 0 };
+    const added = addedCounts(counts, previous);
+    const changed = this.addActivity(file.path, added, new Date(file.stat.mtime));
+    this.data.files[file.path] = counts;
     if (
-      !(file instanceof TFile) ||
-      file.extension !== "md" ||
-      !this.addEdit(file.path, new Date(file.stat.mtime))
+      !changed &&
+      !added.words &&
+      !added.characters &&
+      counts.words === previous.words &&
+      counts.characters === previous.characters
     )
       return;
     await this.saveData(this.data);
@@ -395,14 +450,29 @@ module.exports = class LifeStructurePlugin extends Plugin {
   async renameEdit(file, oldPath) {
     if (!(file instanceof TFile) || file.extension !== "md") return;
     let changed = false;
-    for (const paths of Object.values(this.data.edits)) {
-      const index = paths.indexOf(oldPath);
-      if (index !== -1) {
-        paths[index] = file.path;
+    for (const files of Object.values(this.data.activity)) {
+      if (files[oldPath]) {
+        const current = files[file.path] || { words: 0, characters: 0 };
+        files[file.path] = {
+          words: current.words + files[oldPath].words,
+          characters: current.characters + files[oldPath].characters,
+        };
+        delete files[oldPath];
         changed = true;
       }
     }
+    if (this.data.files[oldPath]) {
+      this.data.files[file.path] = this.data.files[oldPath];
+      delete this.data.files[oldPath];
+      changed = true;
+    }
     if (changed) await this.saveData(this.data);
+  }
+
+  async deleteFile(file) {
+    if (!(file instanceof TFile) || !this.data.files[file.path]) return;
+    delete this.data.files[file.path];
+    await this.saveData(this.data);
   }
 
   refreshViews() {

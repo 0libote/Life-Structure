@@ -4,11 +4,14 @@ const test = require("node:test");
 const assert = require("node:assert/strict");
 const {
   activityLevel,
+  activityTotal,
+  addedCounts,
   combinedLevels,
   dateKey,
   gridColumns,
   periodData,
   stats,
+  textCounts,
 } = require("./src/heatmap");
 
 test("stats count levels and the current streak", () => {
@@ -26,9 +29,60 @@ test("vault activity fills levels without overwriting manual effort", () => {
   assert.deepEqual(
     combinedLevels(
       { "2026-07-26": 4 },
-      { "2026-07-26": ["one.md"], "2026-07-27": ["one.md", "two.md"] },
+      {
+        "2026-07-26": { "one.md": { words: 10, characters: 50 } },
+        "2026-07-27": {
+          "one.md": { words: 200, characters: 1000 },
+          "two.md": { words: 300, characters: 1500 },
+        },
+      },
     ),
     { "2026-07-26": 4, "2026-07-27": 2 },
+  );
+  assert.deepEqual(
+    combinedLevels(
+      {},
+      {
+        "2026-07-27": {
+          "one.md": { words: 200, characters: 1000 },
+          "two.md": { words: 300, characters: 1500 },
+        },
+      },
+      "words",
+    ),
+    { "2026-07-27": 3 },
+  );
+  assert.equal(
+    activityTotal(
+      {
+        "one.md": { words: 200, characters: 1000 },
+        "two.md": { words: 300, characters: 1500 },
+      },
+      "characters",
+    ),
+    2500,
+  );
+});
+
+test("writing counts words and Unicode characters", () => {
+  assert.deepEqual(textCounts("One  two\n👋"), { words: 3, characters: 10 });
+  assert.deepEqual(addedCounts({ words: 3, characters: 10 }), {
+    words: 3,
+    characters: 10,
+  });
+  assert.deepEqual(
+    addedCounts(
+      { words: 2, characters: 8 },
+      { words: 3, characters: 10 },
+    ),
+    { words: 0, characters: 0 },
+  );
+  assert.deepEqual(
+    addedCounts(
+      { words: 4, characters: 12 },
+      { words: 2, characters: 8 },
+    ),
+    { words: 2, characters: 4 },
   );
 });
 
