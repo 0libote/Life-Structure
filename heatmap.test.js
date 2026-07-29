@@ -6,10 +6,14 @@ const {
   activityLevel,
   activityTotal,
   addedCounts,
+  baselineCounts,
   combinedLevels,
   dateKey,
+  firstActivityKeys,
   gridColumns,
+  misplacedBaseline,
   periodData,
+  sameCounts,
   stats,
   textCounts,
 } = require("./src/heatmap");
@@ -83,6 +87,53 @@ test("writing counts words and Unicode characters", () => {
       { words: 2, characters: 8 },
     ),
     { words: 2, characters: 4 },
+  );
+  assert.deepEqual(
+    baselineCounts(
+      { words: 500, characters: 2500 },
+      { words: 0, characters: 0 },
+    ),
+    { words: 500, characters: 2500 },
+  );
+  assert.equal(
+    baselineCounts(
+      { words: 500, characters: 2500 },
+      { words: 10, characters: 50 },
+    ),
+    null,
+  );
+  assert.equal(
+    sameCounts(
+      { words: 500, characters: 2500 },
+      { words: 500, characters: 2500 },
+    ),
+    true,
+  );
+  assert.equal(
+    sameCounts(
+      { words: 499, characters: 2500 },
+      { words: 500, characters: 2500 },
+    ),
+    false,
+  );
+  assert.deepEqual(
+    firstActivityKeys({
+      "2026-07-01": { "new.md": {}, "old.md": {} },
+      "2025-01-01": { "old.md": {} },
+    }),
+    { "old.md": "2025-01-01", "new.md": "2026-07-01" },
+  );
+  assert.deepEqual(
+    misplacedBaseline(
+      {
+        "2025-01-01": { "old.md": { words: 0, characters: 0 } },
+        "2026-07-01": { "old.md": { words: 500, characters: 2500 } },
+      },
+      "old.md",
+      { words: 500, characters: 2500 },
+      "2025-01-01",
+    ),
+    { words: 500, characters: 2500 },
   );
 });
 

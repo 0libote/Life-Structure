@@ -68,6 +68,30 @@ function addedCounts(current, previous) {
   };
 }
 
+function baselineCounts(current, recorded) {
+  return recorded?.words || recorded?.characters ? null : current;
+}
+
+function firstActivityKeys(activity) {
+  const first = {};
+  for (const key of Object.keys(activity).sort()) {
+    for (const path of Object.keys(activity[key])) first[path] ??= key;
+  }
+  return first;
+}
+
+function sameCounts(left, right) {
+  return left?.words === right.words && left?.characters === right.characters;
+}
+
+function misplacedBaseline(activity, path, counts, targetKey) {
+  return (
+    Object.entries(activity).find(
+      ([key, files]) => key !== targetKey && sameCounts(files[path], counts),
+    )?.[1][path] || null
+  );
+}
+
 function periodData(levels, start, end, cutoff) {
   const data = [];
   for (const date = new Date(start); date <= end; date.setDate(date.getDate() + 1)) {
@@ -100,10 +124,15 @@ module.exports = {
   activityLevel,
   activityTotal,
   addedCounts,
+  baselineCounts,
   combinedLevels,
+  dateFromKey,
   dateKey,
+  firstActivityKeys,
   gridColumns,
+  misplacedBaseline,
   periodData,
+  sameCounts,
   stats,
   textCounts,
 };

@@ -8,9 +8,13 @@ const { ItemView, Plugin, setIcon, TFile } = require("obsidian");
 const {
   addedCounts,
   activityTotal,
+  baselineCounts,
   combinedLevels,
+  dateFromKey,
   dateKey,
+  firstActivityKeys,
   gridColumns,
+  misplacedBaseline,
   periodData,
   stats,
   textCounts,
@@ -100,7 +104,10 @@ class LifeStructureView extends ItemView {
     const header = root.createEl("header", { cls: "life-structure__header" });
     header.createEl("h2", { text: "Activity" });
     header.createEl("p", {
-      text: "Activity from notes you create and edit. Select a day to record extra effort.",
+      text:
+        metric === "notes"
+          ? "Activity from notes you create and edit. Select a day to record extra effort."
+          : `Activity from ${metric} you add. Select a day to record extra effort.`,
     });
 
     const metrics = header.createDiv({ cls: "life-structure__metrics" });
@@ -136,7 +143,7 @@ class LifeStructureView extends ItemView {
       button.addEventListener("click", () => {
         if (this.mode === mode) return;
         this.mode = mode;
-        this.cursor = new Date();
+        this.contentEl.scrollTop = 0;
         void this.render();
       });
     }
@@ -381,8 +388,9 @@ module.exports = class LifeStructurePlugin extends Plugin {
           ? stored.files
           : {},
       metric: Object.hasOwn(METRICS, stored?.metric) ? stored.metric : "notes",
+      baselineVersion: 1,
     };
-    await this.backfill();
+    await this.backfill(stored?.baselineVersion !== 1);
     this.registerView(VIEW_TYPE, (leaf) => new LifeStructureView(leaf, this));
     this.addRibbonIcon(
       "chart-no-axes-column-increasing",
@@ -401,16 +409,38 @@ module.exports = class LifeStructurePlugin extends Plugin {
     this.registerEvent(this.app.workspace.on("css-change", () => this.refreshViews()));
   }
 
-  async backfill() {
-    let changed = false;
+  async backfill(needsBaseline) {
+    let changed = needsBaseline;
+    const firstActivity = firstActivityKeys(this.data.activity);
     for (const file of this.app.vault.getMarkdownFiles()) {
       for (const timestamp of new Set([file.stat.ctime, file.stat.mtime])) {
         changed =
           this.addActivity(file.path, { words: 0, characters: 0 }, new Date(timestamp)) ||
           changed;
       }
-      if (!this.data.files[file.path]) {
-        this.data.files[file.path] = textCounts(await this.app.vault.cachedRead(file));
+      if (needsBaseline || !this.data.files[file.path]) {
+        const counts = textCounts(await this.app.vault.cachedRead(file));
+        const baselineKey = firstActivity[file.path] || dateKey(new Date(file.stat.ctime));
+        const baselineDate = dateFromKey(baselineKey);
+        if (needsBaseline) {
+          const misplaced = misplacedBaseline(
+            this.data.activity,
+            file.path,
+            counts,
+            baselineKey,
+          );
+          if (misplaced) {
+            misplaced.words = 0;
+            misplaced.characters = 0;
+          }
+          const baseline = baselineCounts(
+            counts,
+            this.data.activity[baselineKey]?.[file.path],
+          );
+          if (baseline)
+            changed = this.addActivity(file.path, baseline, baselineDate) || changed;
+        }
+        this.data.files[file.path] = counts;
         changed = true;
       }
     }

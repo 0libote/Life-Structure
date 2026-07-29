@@ -4,7 +4,8 @@ Life Structure adds a calm, full-page activity heatmap to Obsidian. It records
 the notes, words, or characters you add, shows year and month views, and lets
 you select a day to record extra effort. Historical activity remains after
 content or notes are deleted, including the words and characters added to each
-file on each day.
+file on each day. Existing notes are initially counted on their earliest known
+activity date.
 
 ## Use
 
