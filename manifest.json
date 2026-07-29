@@ -1,0 +1,10 @@
+{
+  "id": "life-structure",
+  "name": "Life Structure",
+  "version": "0.4.0",
+  "minAppVersion": "1.5.0",
+  "description": "A calm, full-page activity heatmap for building daily momentum.",
+  "author": "0libote",
+  "authorUrl": "https://github.com/0libote",
+  "isDesktopOnly": false
+}

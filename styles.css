@@ -1,0 +1,264 @@
+.life-structure {
+  container-type: inline-size;
+  box-sizing: border-box;
+  display: flex;
+  height: 100%;
+  min-height: 0;
+  flex-direction: column;
+  overflow-x: hidden;
+  overflow-y: auto;
+  padding: clamp(var(--size-4-6), 5vw, 56px);
+  background: var(--background-primary);
+  color: var(--text-normal);
+}
+
+.life-structure__header,
+.life-structure__panel {
+  width: min(960px, 100%);
+  margin-inline: auto;
+}
+
+.life-structure__panel {
+  display: flex;
+  min-height: 0;
+  flex: 1;
+  flex-direction: column;
+}
+
+.life-structure__header {
+  margin-bottom: 32px;
+}
+
+.life-structure__header h2,
+.life-structure__header p {
+  margin: 0;
+}
+
+.life-structure__header p {
+  max-width: 540px;
+  margin-top: var(--size-4-2);
+  color: var(--text-muted);
+  font-size: var(--font-ui-small);
+}
+
+.life-structure__metrics {
+  display: flex;
+  flex-wrap: wrap;
+  gap: clamp(24px, 5vw, 48px);
+  margin-top: 20px;
+  padding-bottom: 20px;
+  border-bottom: 1px solid var(--background-modifier-border);
+}
+
+.life-structure__metric {
+  display: grid;
+  gap: 2px;
+}
+
+.life-structure__metric strong {
+  font-size: var(--font-ui-medium);
+  font-weight: var(--font-semibold);
+  line-height: 1.2;
+  font-variant-numeric: tabular-nums;
+}
+
+.life-structure__metric span {
+  color: var(--text-muted);
+  font-size: var(--font-ui-smaller);
+}
+
+.life-structure__toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--size-4-4);
+  min-height: 34px;
+  margin-bottom: var(--size-4-3);
+}
+
+.life-structure__toolbar h3 {
+  margin: 0;
+  font-size: var(--font-ui-medium);
+  font-weight: var(--font-semibold);
+}
+
+.life-structure__controls {
+  display: flex;
+  align-items: center;
+  gap: var(--size-2-1);
+}
+
+.life-structure__range {
+  display: flex;
+  gap: 2px;
+  padding: 2px;
+  border: 1px solid var(--background-modifier-border);
+  border-radius: var(--radius-s);
+  background: var(--background-secondary);
+}
+
+.life-structure__range button {
+  height: 26px;
+  padding: 0 10px;
+  border: 0;
+  background: transparent;
+  box-shadow: none;
+  color: var(--text-muted);
+  font-size: var(--font-ui-smaller);
+}
+
+.life-structure__range button[aria-pressed="true"] {
+  background: var(--background-primary);
+  box-shadow: 0 1px 2px rgb(0 0 0 / 12%);
+  color: var(--text-normal);
+}
+
+.life-structure__chart {
+  display: flex;
+  justify-content: center;
+  min-height: 0;
+  width: 100%;
+  flex: 1;
+  align-items: center;
+  padding-top: 20px;
+  overflow: hidden;
+}
+
+.life-structure__chart > .ch-container {
+  width: 100%;
+  height: 100%;
+  flex: none;
+}
+
+.life-structure__chart.is-month > .ch-container {
+  width: min(100%, 520px);
+}
+
+.life-structure .ch-container,
+.life-structure .ch-domain,
+.life-structure .ch-domain-container,
+.life-structure .ch-domain-container-animation-wrapper,
+.life-structure .ch-subdomain {
+  display: block;
+  overflow: visible;
+}
+
+.life-structure .ch-domain-bg {
+  fill: transparent;
+}
+
+.life-structure .ch-domain-text,
+.life-structure .ch-plugin-calendar-label-text {
+  fill: currentColor;
+  color: var(--text-muted);
+  font-family: var(--font-interface);
+  font-size: var(--font-ui-smaller);
+}
+
+.life-structure .ch-subdomain-bg {
+  cursor: pointer;
+  shape-rendering: geometricPrecision;
+}
+
+.life-structure .ch-subdomain-text {
+  font-family: var(--font-interface);
+  font-size: var(--font-ui-smaller);
+  font-variant-numeric: tabular-nums;
+  pointer-events: none;
+}
+
+.life-structure .ch-subdomain-bg:hover {
+  stroke: var(--text-normal);
+  stroke-width: 1px;
+}
+
+.life-structure .ch-subdomain-bg.highlight {
+  stroke: var(--text-normal);
+  stroke-width: 2px;
+}
+
+.life-structure .ch-subdomain-bg.is-future {
+  pointer-events: none;
+}
+
+#ch-tooltip {
+  z-index: var(--layer-popover);
+  display: none;
+  max-width: min(360px, calc(100vw - 24px));
+  padding: 8px 10px;
+  border: 1px solid var(--background-modifier-border);
+  border-radius: var(--radius-s);
+  background: var(--background-secondary);
+  box-shadow: var(--shadow-s);
+  color: var(--text-normal);
+  font-family: var(--font-interface);
+  font-size: var(--font-ui-smaller);
+  line-height: var(--line-height-tight);
+  text-align: left;
+}
+
+#ch-tooltip[data-show] {
+  display: block;
+}
+
+#ch-tooltip-body {
+  display: grid;
+  gap: 2px;
+}
+
+#ch-tooltip-body strong {
+  font-weight: var(--font-semibold);
+}
+
+#ch-tooltip-body span {
+  color: var(--text-muted);
+}
+
+#ch-tooltip-arrow,
+#ch-tooltip-arrow::before {
+  position: absolute;
+  width: 8px;
+  height: 8px;
+  background: inherit;
+}
+
+#ch-tooltip-arrow {
+  visibility: hidden;
+}
+
+#ch-tooltip-arrow::before {
+  content: "";
+  visibility: visible;
+  transform: rotate(45deg);
+}
+
+#ch-tooltip[data-popper-placement^="top"] > #ch-tooltip-arrow {
+  bottom: -4px;
+}
+
+#ch-tooltip[data-popper-placement^="bottom"] > #ch-tooltip-arrow {
+  top: -4px;
+}
+
+#ch-tooltip[data-popper-placement^="left"] > #ch-tooltip-arrow {
+  right: -4px;
+}
+
+#ch-tooltip[data-popper-placement^="right"] > #ch-tooltip-arrow {
+  left: -4px;
+}
+
+@container (max-width: 520px) {
+  .life-structure {
+    padding: var(--size-4-4);
+  }
+
+  .life-structure__metrics {
+    gap: var(--size-4-6);
+  }
+
+  .life-structure__toolbar {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+}

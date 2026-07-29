@@ -1,0 +1,31 @@
+name: Release
+
+on:
+  push:
+    tags: ["*.*.*"]
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      id-token: write
+      attestations: write
+    steps:
+      - uses: actions/checkout@v6
+      - uses: oven-sh/setup-bun@v2
+      - run: bun install --frozen-lockfile
+      - run: bun run check
+      - uses: actions/attest@v4
+        with:
+          subject-path: |
+            main.js
+            styles.css
+      - env:
+          GH_TOKEN: ${{ github.token }}
+        run: >
+          gh release create "$GITHUB_REF_NAME"
+          --title "$GITHUB_REF_NAME"
+          --draft
+          --generate-notes
+          main.js manifest.json styles.css
