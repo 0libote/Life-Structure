@@ -66,6 +66,10 @@ test("vault activity fills levels without overwriting manual effort", () => {
 
 test("writing counts words and Unicode characters", () => {
   assert.deepEqual(textCounts("One  two\n👋"), { words: 3, characters: 10 });
+  assert.deepEqual(addedCounts({ words: 3, characters: 10 }), {
+    words: 3,
+    characters: 10,
+  });
   assert.deepEqual(
     addedCounts(
       { words: 2, characters: 8 },

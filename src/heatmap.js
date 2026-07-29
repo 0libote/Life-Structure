@@ -61,10 +61,10 @@ function textCounts(text) {
   };
 }
 
-function addedCounts(current, previous = { words: 0, characters: 0 }) {
+function addedCounts(current, previous) {
   return {
-    words: Math.max(0, current.words - previous.words),
-    characters: Math.max(0, current.characters - previous.characters),
+    words: Math.max(0, current.words - (previous?.words || 0)),
+    characters: Math.max(0, current.characters - (previous?.characters || 0)),
   };
 }
 
