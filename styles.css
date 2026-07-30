@@ -121,133 +121,97 @@
   min-height: 0;
   width: 100%;
   flex: 1;
-  align-items: center;
+  align-items: flex-start;
   padding-top: 20px;
-  overflow: hidden;
-}
-
-.life-structure__chart > .ch-container {
-  width: 100%;
-  height: 100%;
-  flex: none;
-}
-
-.life-structure__chart.is-month > .ch-container {
-  width: min(100%, 520px);
-}
-
-.life-structure .ch-container,
-.life-structure .ch-domain,
-.life-structure .ch-domain-container,
-.life-structure .ch-domain-container-animation-wrapper,
-.life-structure .ch-subdomain {
-  display: block;
   overflow: visible;
 }
 
-.life-structure .ch-domain-bg {
-  fill: transparent;
+.life-structure__calendar {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
+  gap: 20px;
+  width: 100%;
 }
 
-.life-structure .ch-domain-text,
-.life-structure .ch-plugin-calendar-label-text {
-  fill: currentColor;
+.life-structure__chart.is-month .life-structure__calendar {
+  display: block;
+  width: min(100%, 520px);
+}
+
+.life-structure__month {
+  min-width: 0;
+}
+
+.life-structure__month h4 {
+  margin: 0 0 8px;
   color: var(--text-muted);
-  font-family: var(--font-interface);
   font-size: var(--font-ui-smaller);
+  font-weight: var(--font-medium);
 }
 
-.life-structure .ch-subdomain-bg {
+.life-structure__month-grid {
+  display: grid;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+  gap: 4px;
+}
+
+.life-structure__weekday {
+  color: var(--text-muted);
+  font-size: var(--font-ui-smaller);
+  text-align: center;
+}
+
+.life-structure__chart.is-year .life-structure__weekday {
+  font-size: 0;
+}
+
+.life-structure__day {
+  min-width: 0;
+  aspect-ratio: 1;
+  padding: 0;
+  border: 1px solid transparent;
+  border-radius: 3px;
+  background: var(--background-modifier-border);
+  box-shadow: none;
+  color: var(--text-normal);
   cursor: pointer;
-  shape-rendering: geometricPrecision;
-}
-
-.life-structure .ch-subdomain-text {
-  font-family: var(--font-interface);
   font-size: var(--font-ui-smaller);
   font-variant-numeric: tabular-nums;
-  pointer-events: none;
 }
 
-.life-structure .ch-subdomain-bg:hover {
-  stroke: var(--text-normal);
-  stroke-width: 1px;
+.life-structure__day.level-1 {
+  background: color-mix(in srgb, var(--interactive-accent) 30%, transparent);
 }
 
-.life-structure .ch-subdomain-bg.highlight {
-  stroke: var(--text-normal);
-  stroke-width: 2px;
+.life-structure__day.level-2 {
+  background: color-mix(in srgb, var(--interactive-accent) 50%, transparent);
 }
 
-.life-structure .ch-subdomain-bg.is-future {
-  pointer-events: none;
+.life-structure__day.level-3 {
+  background: color-mix(in srgb, var(--interactive-accent) 75%, transparent);
+  color: var(--text-on-accent);
 }
 
-#ch-tooltip {
-  z-index: var(--layer-popover);
-  display: none;
-  max-width: min(360px, calc(100vw - 24px));
-  padding: 8px 10px;
-  border: 1px solid var(--background-modifier-border);
-  border-radius: var(--radius-s);
-  background: var(--background-secondary);
-  box-shadow: var(--shadow-s);
-  color: var(--text-normal);
-  font-family: var(--font-interface);
-  font-size: var(--font-ui-smaller);
-  line-height: var(--line-height-tight);
-  text-align: left;
+.life-structure__day.level-4 {
+  background: var(--interactive-accent);
+  color: var(--text-on-accent);
 }
 
-#ch-tooltip[data-show] {
-  display: block;
+.life-structure__day:hover,
+.life-structure__day:focus-visible {
+  border-color: var(--text-normal);
+  outline: none;
 }
 
-#ch-tooltip-body {
-  display: grid;
-  gap: 2px;
+.life-structure__day.is-today {
+  box-shadow: 0 0 0 2px var(--text-normal);
 }
 
-#ch-tooltip-body strong {
-  font-weight: var(--font-semibold);
-}
-
-#ch-tooltip-body span {
-  color: var(--text-muted);
-}
-
-#ch-tooltip-arrow,
-#ch-tooltip-arrow::before {
-  position: absolute;
-  width: 8px;
-  height: 8px;
-  background: inherit;
-}
-
-#ch-tooltip-arrow {
-  visibility: hidden;
-}
-
-#ch-tooltip-arrow::before {
-  content: "";
-  visibility: visible;
-  transform: rotate(45deg);
-}
-
-#ch-tooltip[data-popper-placement^="top"] > #ch-tooltip-arrow {
-  bottom: -4px;
-}
-
-#ch-tooltip[data-popper-placement^="bottom"] > #ch-tooltip-arrow {
-  top: -4px;
-}
-
-#ch-tooltip[data-popper-placement^="left"] > #ch-tooltip-arrow {
-  right: -4px;
-}
-
-#ch-tooltip[data-popper-placement^="right"] > #ch-tooltip-arrow {
-  left: -4px;
+.life-structure__day:disabled {
+  border-color: transparent;
+  background: transparent;
+  box-shadow: none;
+  cursor: default;
 }
 
 @container (max-width: 520px) {

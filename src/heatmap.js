@@ -103,23 +103,6 @@ function periodData(levels, start, end, cutoff) {
   return data;
 }
 
-function gridColumns(count, width, height, itemWidth, itemHeight, gap = 12) {
-  let bestColumns = 1;
-  let bestScale = 0;
-  for (let columns = 1; columns <= count; columns++) {
-    const rows = Math.ceil(count / columns);
-    const scale = Math.min(
-      width / (columns * itemWidth + (columns - 1) * gap),
-      height / (rows * itemHeight + (rows - 1) * gap),
-    );
-    if (scale > bestScale) {
-      bestColumns = columns;
-      bestScale = scale;
-    }
-  }
-  return bestColumns;
-}
-
 module.exports = {
   activityLevel,
   activityTotal,
@@ -129,7 +112,6 @@ module.exports = {
   dateFromKey,
   dateKey,
   firstActivityKeys,
-  gridColumns,
   misplacedBaseline,
   periodData,
   sameCounts,
