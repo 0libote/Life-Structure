@@ -20,7 +20,8 @@ test("Obsidian marketplace metadata and assets are valid", () => {
   }
 
   assert.match(manifest.id, /^[a-z-]+$/);
-  assert.doesNotMatch(manifest.id, /obsidian|plugin$/);
+  assert.doesNotMatch(manifest.id, /obsidian/);
+  assert.doesNotMatch(manifest.id, /plugin$/);
   assert.match(manifest.name, /^[A-Za-z0-9 +()-]+$/);
   assert.doesNotMatch(manifest.name, /obsidian|obsi-|-sidian|plugin/i);
   assert.match(manifest.version, semver);
