@@ -12,7 +12,13 @@
     "test": "bun test",
     "check": "bun run build && bun test"
   },
+  "dependencies": {
+    "cal-heatmap": "4.2.4"
+  },
   "devDependencies": {
     "esbuild": "^0.28.1"
+  },
+  "patchedDependencies": {
+    "cal-heatmap@4.2.4": "patches/cal-heatmap@4.2.4.patch"
   }
 }

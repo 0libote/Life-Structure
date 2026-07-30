@@ -1,0 +1,103 @@
+diff --git a/dist/cal-heatmap.esm.js b/dist/cal-heatmap.esm.js
+index 47f24ddb2228e405f5689055f36f4f9d3a433b8d..f7e2d83f5ddb8f06696fde526d9359c51f695262 100644
+--- a/dist/cal-heatmap.esm.js
++++ b/dist/cal-heatmap.esm.js
+@@ -1,7 +1,6 @@
+ import { select } from 'd3-selection';
+ import { hcl } from 'd3-color';
+ import { ascending, timeSecond, timeMinute, timeHour, timeDay, timeWeek, timeMonth, timeYear, timeMonday, timeTuesday, timeWednesday, timeThursday, timeFriday, timeSaturday, timeSunday, utcSecond, utcMinute, utcHour, utcDay, utcWeek, utcMonth, utcYear, utcMonday, utcTuesday, utcWednesday, utcThursday, utcFriday, utcSaturday, utcSunday, descending, range, symbolAsterisk, symbolCircle, symbolCross, symbolDiamond, symbolDiamond2, symbolPlus, symbolSquare, symbolSquare2, symbolStar, symbolTimes, symbolTriangle, symbolTriangle2, symbolWye, schemeAccent, schemeCategory10, schemeDark2, schemePaired, schemePastel1, schemePastel2, schemeSet1, schemeSet2, schemeSet3, schemeTableau10, quantize, interpolateBrBG, interpolatePRGn, interpolatePiYG, interpolatePuOr, interpolateRdBu, interpolateRdGy, interpolateRdYlBu, interpolateRdYlGn, interpolateSpectral, interpolateBlues, interpolateGreens, interpolateGreys, interpolatePurples, interpolateReds, interpolateOranges, interpolateTurbo, interpolateViridis, interpolateMagma, interpolateInferno, interpolatePlasma, interpolateCividis, interpolateCubehelixDefault, interpolateWarm, interpolateCool, interpolateBuGn, interpolateBuPu, interpolateGnBu, interpolateOrRd, interpolatePuBuGn, interpolatePuBu, interpolatePuRd, interpolateRdPu, interpolateYlGnBu, interpolateYlGn, interpolateYlOrBr, interpolateYlOrRd, interpolateRainbow, interpolateSinebow, schemeBrBG, schemePRGn, schemePiYG, schemePuOr, schemeRdBu, schemeRdGy, schemeRdYlBu, schemeRdYlGn, schemeSpectral, schemeBlues, schemeGreens, schemeGreys, schemeOranges, schemePurples, schemeReds, schemeBuGn, schemeBuPu, schemeGnBu, schemeOrRd, schemePuBu, schemePuBuGn, schemePuRd, schemeRdPu, schemeYlGn, schemeYlGnBu, schemeYlOrBr, schemeYlOrRd, scaleLinear, scalePow, scaleLog, scaleSymlog, scaleQuantile, extent, ticks, interpolateNumber, reverse, scaleThreshold, scaleIdentity, max as max$4, interpolateRgb, interpolateRound, min as min$4, quantile, median, interpolateHsl, interpolateHcl, interpolateLab, scaleDiverging, scaleDivergingPow, scaleDivergingLog, scaleDivergingSymlog, piecewise, scaleTime, scaleUtc, scaleImplicit, scaleOrdinal, scalePoint, scaleBand, InternSet, sort, symbolsStroke, symbolsFill } from 'd3';
+-import { text, dsv, csv, json } from 'd3-fetch';
+ 
+ function _iterableToArrayLimit(arr, i) {
+   var _i = null == arr ? null : "undefined" != typeof Symbol && arr[Symbol.iterator] || arr["@@iterator"];
+@@ -1831,9 +1830,9 @@ if (!set$1 || !clear) {
+     defer = globalPostMessageDefer;
+     global$b.addEventListener('message', eventListener, false);
+   // IE8-
+-  } else if (ONREADYSTATECHANGE in createElement('script')) {
++  } else if (ONREADYSTATECHANGE in createElement('span')) {
+     defer = function (id) {
+-      html$1.appendChild(createElement('script'))[ONREADYSTATECHANGE] = function () {
++      html$1.appendChild(createElement('span'))[ONREADYSTATECHANGE] = function () {
+         html$1.removeChild(this);
+         run(id);
+       };
+@@ -12059,24 +12058,7 @@ var DataFetcher = /*#__PURE__*/function () {
+   return DataFetcher;
+ }();
+ _DataFetcher_instances = new WeakSet(), _DataFetcher_fetch = function _DataFetcher_fetch(source, startTimestamp, endTimestamp) {
+-  var _this$calendar$option = this.calendar.options.options.data,
+-    type = _this$calendar$option.type,
+-    requestInit = _this$calendar$option.requestInit;
+-  var url = this.parseURI(source, startTimestamp, endTimestamp);
+-  switch (type) {
+-    case 'json':
+-      return json(url, requestInit);
+-    case 'csv':
+-      return csv(url, requestInit);
+-    case 'tsv':
+-      return dsv('\t', url, requestInit);
+-    case 'txt':
+-      return text(url, requestInit);
+-    default:
+-      return new Promise(function (resolve) {
+-        resolve([]);
+-      });
+-  }
++  return Promise.reject(new Error('Remote data sources are disabled'));
+ };
+ 
+ var DESCRIPTORS = descriptors;
+@@ -12449,19 +12431,7 @@ var DateHelper = /*#__PURE__*/function () {
+   }, {
+     key: "loadBrowserLocale",
+     value: function loadBrowserLocale(userLocale) {
+-      return new Promise(function (resolve, reject) {
+-        var s = document.createElement('script');
+-        s.type = 'text/javascript';
+-        s.async = true;
+-        s.src = "https://cdn.jsdelivr.net/npm/dayjs@1/locale/".concat(userLocale, ".js");
+-        s.onerror = function (err) {
+-          reject(err);
+-        };
+-        s.onload = function () {
+-          resolve(window["dayjs_locale_".concat(userLocale)]);
+-        };
+-        document.head.appendChild(s);
+-      });
++      return Promise.reject(new Error("External locale loading is disabled: ".concat(userLocale)));
+     }
+     // eslint-disable-next-line class-methods-use-this
+   }, {
+diff --git a/dist/plugins/CalendarLabel.esm.js b/dist/plugins/CalendarLabel.esm.js
+index 2d646df4a89074fa3d1aa4cbf9eb0e907d4eb12c..d608cd9edb825edb9aa772404871808a2f0431d5 100644
+--- a/dist/plugins/CalendarLabel.esm.js
++++ b/dist/plugins/CalendarLabel.esm.js
+@@ -1540,9 +1540,9 @@ if (!set || !clear) {
+     defer = globalPostMessageDefer;
+     global$8.addEventListener('message', eventListener, false);
+   // IE8-
+-  } else if (ONREADYSTATECHANGE in createElement('script')) {
++  } else if (ONREADYSTATECHANGE in createElement('span')) {
+     defer = function (id) {
+-      html$1.appendChild(createElement('script'))[ONREADYSTATECHANGE] = function () {
++      html$1.appendChild(createElement('span'))[ONREADYSTATECHANGE] = function () {
+         html$1.removeChild(this);
+         run(id);
+       };
+diff --git a/dist/plugins/Tooltip.esm.js b/dist/plugins/Tooltip.esm.js
+index 946cdb8263b393a53ff097503e2857841bd5d13d..193e27332aa0b5a21c5b4f3c34b14462c188fef6 100644
+--- a/dist/plugins/Tooltip.esm.js
++++ b/dist/plugins/Tooltip.esm.js
+@@ -1703,9 +1703,9 @@ if (!set || !clear) {
+     defer = globalPostMessageDefer;
+     global$7.addEventListener('message', eventListener, false);
+   // IE8-
+-  } else if (ONREADYSTATECHANGE in createElement('script')) {
++  } else if (ONREADYSTATECHANGE in createElement('span')) {
+     defer = function (id) {
+-      html$1.appendChild(createElement('script'))[ONREADYSTATECHANGE] = function () {
++      html$1.appendChild(createElement('span'))[ONREADYSTATECHANGE] = function () {
+         html$1.removeChild(this);
+         run(id);
+       };

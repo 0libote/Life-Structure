@@ -10,6 +10,7 @@ const {
   combinedLevels,
   dateKey,
   firstActivityKeys,
+  gridColumns,
   misplacedBaseline,
   periodData,
   sameCounts,
@@ -144,4 +145,10 @@ test("period data makes future days unavailable", () => {
     new Date(2026, 6, 2, 12),
   );
   assert.deepEqual(data.map(({ value }) => value), [3, 0, "#00000000"]);
+});
+
+test("year grid uses the pane in both directions", () => {
+  assert.equal(gridColumns(7, 960, 500, 114, 153), 4);
+  assert.equal(gridColumns(7, 240, 500, 114, 153), 2);
+  assert.equal(gridColumns(12, 960, 500, 114, 153), 6);
 });
