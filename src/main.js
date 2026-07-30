@@ -421,30 +421,22 @@ module.exports = class LifeStructurePlugin extends Plugin {
       if (needsBaseline || !this.data.files[file.path]) {
         const counts = textCounts(await this.app.vault.cachedRead(file));
         const baselineKey = firstActivity[file.path] || dateKey(new Date(file.stat.ctime));
-        const baselineDate = dateFromKey(baselineKey);
-        if (needsBaseline) {
-          const misplaced = misplacedBaseline(
-            this.data.activity,
-            file.path,
-            counts,
-            baselineKey,
-          );
-          if (misplaced) {
-            misplaced.words = 0;
-            misplaced.characters = 0;
-          }
-          const baseline = baselineCounts(
-            counts,
-            this.data.activity[baselineKey]?.[file.path],
-          );
-          if (baseline)
-            changed = this.addActivity(file.path, baseline, baselineDate) || changed;
-        }
+        if (needsBaseline) this.backfillBaseline(file.path, counts, baselineKey);
         this.data.files[file.path] = counts;
         changed = true;
       }
     }
     if (changed) await this.saveData(this.data);
+  }
+
+  backfillBaseline(path, counts, baselineKey) {
+    const misplaced = misplacedBaseline(this.data.activity, path, counts, baselineKey);
+    if (misplaced) {
+      misplaced.words = 0;
+      misplaced.characters = 0;
+    }
+    const baseline = baselineCounts(counts, this.data.activity[baselineKey]?.[path]);
+    if (baseline) this.addActivity(path, baseline, dateFromKey(baselineKey));
   }
 
   addActivity(path, counts, date = new Date()) {
