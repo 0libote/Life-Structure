@@ -74,7 +74,7 @@ function baselineCounts(current, recorded) {
 
 function firstActivityKeys(activity) {
   const first = {};
-  for (const key of Object.keys(activity).sort()) {
+  for (const key of Object.keys(activity).sort((left, right) => left.localeCompare(right))) {
     for (const path of Object.keys(activity[key])) first[path] ??= key;
   }
   return first;
