@@ -2,7 +2,7 @@
 
 const test = require("node:test");
 const assert = require("node:assert/strict");
-const { statSync } = require("node:fs");
+const { readFileSync, statSync } = require("node:fs");
 const manifest = require("./manifest.json");
 const packageJson = require("./package.json");
 const versions = require("./versions.json");
@@ -41,4 +41,9 @@ test("Obsidian marketplace metadata and assets are valid", () => {
   if (process.env.GITHUB_REF_TYPE === "tag") {
     assert.equal(process.env.GITHUB_REF_NAME, manifest.version);
   }
+
+  assert.doesNotMatch(
+    readFileSync("main.js", "utf8"),
+    /\beval\b|new Function|createElement(?:NS)?\s*\(\s*["']script["']/,
+  );
 });

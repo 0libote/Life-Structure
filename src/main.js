@@ -1,5 +1,9 @@
 "use strict";
 
+import CalHeatmap from "cal-heatmap";
+import CalendarLabel from "cal-heatmap/plugins/CalendarLabel";
+import Tooltip from "cal-heatmap/plugins/Tooltip";
+
 const { ItemView, Plugin, setIcon, TFile } = require("obsidian");
 const {
   addedCounts,
@@ -9,6 +13,7 @@ const {
   dateFromKey,
   dateKey,
   firstActivityKeys,
+  gridColumns,
   misplacedBaseline,
   periodData,
   stats,
@@ -29,6 +34,8 @@ class LifeStructureView extends ItemView {
     this.plugin = plugin;
     this.mode = "year";
     this.cursor = new Date();
+    this.cal = null;
+    this.renderId = 0;
   }
 
   getViewType() {
@@ -47,7 +54,21 @@ class LifeStructureView extends ItemView {
     await this.render();
   }
 
+  async onClose() {
+    this.resizeObserver?.disconnect();
+    const calendar = this.cal;
+    this.cal = null;
+    if (calendar) await calendar.destroy();
+  }
+
   async render() {
+    this.resizeObserver?.disconnect();
+    const renderId = ++this.renderId;
+    const oldCalendar = this.cal;
+    this.cal = null;
+    if (oldCalendar) await oldCalendar.destroy();
+    if (renderId !== this.renderId) return;
+
     const today = new Date();
     const currentYear = today.getFullYear();
     const currentMonth = today.getMonth();
@@ -59,6 +80,7 @@ class LifeStructureView extends ItemView {
     const activity = this.plugin.data.activity;
     const metric = this.plugin.data.metric;
     const levels = combinedLevels(manual, activity, metric);
+    const start = new Date(year, this.mode === "year" ? 0 : month, 1, 12);
     const end = new Date(year, this.mode === "year" ? 11 : month + 1, this.mode === "year" ? 31 : 0, 12);
     const cutoff = isCurrent
       ? new Date(currentYear, currentMonth, today.getDate(), 23, 59, 59, 999)
@@ -151,58 +173,150 @@ class LifeStructureView extends ItemView {
       month: "long",
       year: "numeric",
     });
-    const calendar = chart.createDiv({ cls: "life-structure__calendar" });
-    const monthFormatter = new Intl.DateTimeFormat(undefined, { month: "short" });
-    const months =
-      this.mode === "year"
-        ? Array.from({ length: isCurrent ? currentMonth + 1 : 12 }, (_, index) => index)
-        : [month];
+    const colorProbe = root.createSpan();
+    colorProbe.style.display = "none";
+    const color = (variable, fallback) => {
+      colorProbe.style.color = `var(${variable}, ${fallback})`;
+      return getComputedStyle(colorProbe).color;
+    };
+    const accent = color("--interactive-accent", "#7f6df2");
+    const empty = color("--background-modifier-border", "#d8d8d8");
+    const text = color("--text-normal", "#222");
+    const onAccent = color("--text-on-accent", "#fff");
+    colorProbe.remove();
+    const cellSize = this.mode === "year" ? 16 : 40;
+    const calendar = new CalHeatmap();
+    this.cal = calendar;
+    calendar.on("fill", () => {
+      for (const rect of chart.querySelectorAll(".ch-subdomain-bg")) {
+        rect.classList.toggle("is-future", rect.__data__?.t > +cutoff);
+      }
+    });
+    calendar.on("click", async (_event, timestamp) => {
+      const key = dateKey(new Date(timestamp));
+      if (!inPeriod(key)) return;
+      const level = levels[key] || 0;
+      const nextLevel = (Math.max(manual[key] || 0, level) + 1) % LEVEL_LABELS.length;
+      if (nextLevel) manual[key] = nextLevel;
+      else delete manual[key];
+      await this.plugin.saveData(this.plugin.data);
+      await this.render();
+    });
 
-    for (const calendarMonth of months) {
-      const monthStart = new Date(year, calendarMonth, 1, 12);
-      const monthEnd = new Date(year, calendarMonth + 1, 0, 12);
-      const monthEl = calendar.createDiv({ cls: "life-structure__month" });
-      if (this.mode === "year") {
-        monthEl.createEl("h4", { text: monthFormatter.format(monthStart) });
-      }
-      const grid = monthEl.createDiv({ cls: "life-structure__month-grid" });
-      for (const weekday of ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"]) {
-        grid.createSpan({ cls: "life-structure__weekday", text: weekday });
-      }
-      const offset = (monthStart.getDay() + 6) % 7;
-      for (let index = 0; index < offset; index++) {
-        grid.createSpan({ cls: "life-structure__empty" });
-      }
-      for (const { date: timestamp, value } of periodData(
-        levels,
-        monthStart,
-        monthEnd,
-        cutoff,
-      )) {
-        const date = new Date(timestamp);
-        const key = dateKey(date);
-        const future = typeof value !== "number";
-        const level = future ? 0 : value;
-        const count = activityTotal(activity[key], metric);
-        const label = METRICS[metric][count === 1 ? 2 : 1];
-        const button = grid.createEl("button", {
-          cls: `life-structure__day level-${level}${key === dateKey(today) ? " is-today" : ""}`,
-          text: this.mode === "month" ? String(date.getDate()) : "",
-          attr: {
-            "aria-label": `${dateFormatter.format(date)}: ${count.toLocaleString()} ${label}, ${LEVEL_LABELS[level]}`,
-            title: `${dateFormatter.format(date)} · ${count.toLocaleString()} ${label} · ${LEVEL_LABELS[level]}`,
+    await calendar.paint(
+      {
+        itemSelector: chart,
+        range: this.mode === "year" ? (isCurrent ? currentMonth + 1 : 12) : 1,
+        date: {
+          start,
+          highlight: isCurrent ? [today] : [],
+          locale: { weekStart: 1 },
+        },
+        domain: {
+          type: "month",
+          gutter: this.mode === "year" ? 10 : 4,
+          dynamicDimension: true,
+          label:
+            this.mode === "year"
+              ? { text: "MMM", position: "top", textAlign: "start", height: 20 }
+              : { text: null },
+        },
+        subDomain: {
+          type: this.mode === "year" ? "ghDay" : "day",
+          width: cellSize,
+          height: cellSize,
+          gutter: this.mode === "year" ? 3 : 5,
+          radius: this.mode === "year" ? 2 : 4,
+          label: this.mode === "month" ? "D" : null,
+          color:
+            this.mode === "month"
+              ? (timestamp, value) =>
+                  timestamp > +cutoff ? "transparent" : value >= 3 ? onAccent : text
+              : undefined,
+        },
+        data: {
+          source: periodData(levels, start, end, cutoff),
+          x: "date",
+          y: "value",
+          groupY: (values) => values[0],
+          defaultValue: 0,
+        },
+        scale: {
+          color: {
+            type: "linear",
+            domain: [0, 4],
+            range: [empty, accent],
           },
+        },
+        theme: document.body.classList.contains("theme-dark") ? "dark" : "light",
+        animationDuration: 0,
+      },
+      [
+        [
+          Tooltip,
+          {
+            text: (timestamp, value) => {
+              if (timestamp > +cutoff) return "";
+              const key = dateKey(new Date(timestamp));
+              const count = activityTotal(activity[key], metric);
+              const level = typeof value === "number" ? value : 0;
+              const label = METRICS[metric][count === 1 ? 2 : 1];
+              return `<strong>${dateFormatter.format(new Date(timestamp))}</strong><span>${count.toLocaleString()} ${label} · ${LEVEL_LABELS[level]}</span>`;
+            },
+          },
+        ],
+        ...(this.mode === "month"
+          ? [
+              [
+                CalendarLabel,
+                {
+                  position: "left",
+                  text: () => ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"],
+                  width: 28,
+                  padding: [0, 8, 0, 0],
+                },
+              ],
+            ]
+          : []),
+      ],
+    );
+    const svg = chart.querySelector(".ch-container");
+    let { width, height } = calendar.dimensions();
+    if (this.mode === "year") {
+      const domains = [...chart.querySelectorAll(".ch-domain")];
+      const gap = 12;
+      const domainWidth = Math.max(...domains.map((domain) => +domain.getAttribute("width")));
+      const domainHeight = Math.max(...domains.map((domain) => +domain.getAttribute("height")));
+      const layout = () => {
+        const columns = gridColumns(
+          domains.length,
+          Math.max(chart.clientWidth, 1),
+          Math.max(chart.clientHeight, 1),
+          domainWidth,
+          domainHeight,
+          gap,
+        );
+        domains.forEach((domain, index) => {
+          domain.setAttribute("x", String((index % columns) * (domainWidth + gap)));
+          domain.setAttribute("y", String(Math.floor(index / columns) * (domainHeight + gap)));
         });
-        button.disabled = future;
-        button.addEventListener("click", async () => {
-          const nextLevel =
-            (Math.max(manual[key] || 0, levels[key] || 0) + 1) % LEVEL_LABELS.length;
-          if (nextLevel) manual[key] = nextLevel;
-          else delete manual[key];
-          await this.plugin.saveData(this.plugin.data);
-          await this.render();
-        });
-      }
+        width = Math.min(columns, domains.length) * domainWidth +
+          (Math.min(columns, domains.length) - 1) * gap;
+        height = Math.ceil(domains.length / columns) * domainHeight +
+          (Math.ceil(domains.length / columns) - 1) * gap;
+        for (const container of chart.querySelectorAll(
+          ".ch-domain-container, .ch-domain-container-animation-wrapper",
+        )) {
+          container.setAttribute("width", String(width));
+          container.setAttribute("height", String(height));
+        }
+        svg?.setAttribute("viewBox", `0 0 ${width} ${height}`);
+      };
+      layout();
+      this.resizeObserver = new ResizeObserver(layout);
+      this.resizeObserver.observe(chart);
+    } else {
+      svg?.setAttribute("viewBox", `0 0 ${width} ${height}`);
     }
   }
 
